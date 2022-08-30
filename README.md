@@ -1,7 +1,7 @@
 # MEAM520: Introduction to Robotics
-### Date Created: 01/12/2021
+### Date Modified: 08/29/2022
 
-Maintainers: Contact FY2022 TAs
+Maintainers: Contact 2022 Fall semester TAs
 
 # Subdirectory Structure:
 - `core`: contains support code we provide to you, such as helper functions and interfaces for interacting with the robot (either simulated or real!)
@@ -102,7 +102,7 @@ The following steps allow you to copy the *meam520_labs* code base:
 2. In your terminal do the following:
 ```
 $ cd ~/meam520_ws/src
-$ git clone --bare https://github.com/MEAM520/meam520_labs.git
+$ git clone --bare https://github.com/MEAM520/meam520_labs
 ```
 This has created a bare repository of the TAs stub code, which we will refer to TA code for the remainder of the instructions. Note that you will not be using this cloned repository and you will see it appear in your src folder as meam520_labs.git.
 
@@ -180,7 +180,7 @@ Notice that origin still points to your fork, and that upstream is now pointing 
 Now that an upstream is set we will ask that you periodically use the following command:
 
 ```
-git pull upstream master
+git pull upstream main
 ```
 
     This will ensure that you get updates when TAs make changes. You should run this command before starting each new lab. We will also post on Piazza if any changes need to be released during a given lab. 
@@ -213,6 +213,4 @@ python demo.py
 ```
 
 You should see the robot in Gazebo moving.
-
-
 
