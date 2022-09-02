@@ -1,5 +1,5 @@
 import numpy as np
-
+import math
 
 def linear_solver(A, b):
     """
@@ -12,7 +12,8 @@ def linear_solver(A, b):
         x: 0xn numpy array
     """
     # Insert student code here
-    return b
+    x = np.dot(np.linalg.inv(A),b)
+    return x
 
 
 def angle_solver(v1, v2):
@@ -26,7 +27,18 @@ def angle_solver(v1, v2):
         theta = scalar >= 0 = angle in radians
     """
     # Insert student code here
-    return 0
+    temp = np.dot(v1,v2)/(np.linalg.norm(v1)*np.linalg.norm(v2))
+    
+    #sanity check to ensure input of acos between -1 and 1
+    if temp<=-1:
+        temp = -1
+    elif temp>=1:
+        temp = 1
+    
+    #since we need absolute value
+    theta = math.fabs(math.acos(temp))
+
+    return theta
 
 
 def linear_euler_integration(A, x0, dt, nSteps):
@@ -42,8 +54,14 @@ def linear_euler_integration(A, x0, dt, nSteps):
     Returns:
         x: state after nSteps time steps (np array)
     """
-    # Insert student code here
-    return x0
+    #initial state
+    x = x0
+    #nSteps simulation
+    for i in range(nSteps):
+        #Hoping that dimensionality is correct for operations
+        x = np.add(x,np.dot(A,x)*dt)
+        
+    return x
 
 
 if __name__ == '__main__':
