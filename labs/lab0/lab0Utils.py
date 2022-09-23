@@ -1,9 +1,6 @@
 import numpy as np
-<<<<<<< HEAD
 import math
-=======
 
->>>>>>> 8bb54494a7d62144463048fe5b7ad5b46ed5994c
 
 def linear_solver(A, b):
     """
@@ -16,12 +13,8 @@ def linear_solver(A, b):
         x: 0xn numpy array
     """
     # Insert student code here
-<<<<<<< HEAD
     x = np.dot(np.linalg.inv(A),b)
     return x
-=======
-    return b
->>>>>>> 8bb54494a7d62144463048fe5b7ad5b46ed5994c
 
 
 def angle_solver(v1, v2):
@@ -35,7 +28,6 @@ def angle_solver(v1, v2):
         theta = scalar >= 0 = angle in radians
     """
     # Insert student code here
-<<<<<<< HEAD
     temp = np.dot(v1,v2)/(np.linalg.norm(v1)*np.linalg.norm(v2))
     
     #sanity check to ensure input of acos between -1 and 1
@@ -48,9 +40,6 @@ def angle_solver(v1, v2):
     theta = math.fabs(math.acos(temp))
 
     return theta
-=======
-    return 0
->>>>>>> 8bb54494a7d62144463048fe5b7ad5b46ed5994c
 
 
 def linear_euler_integration(A, x0, dt, nSteps):
@@ -66,7 +55,6 @@ def linear_euler_integration(A, x0, dt, nSteps):
     Returns:
         x: state after nSteps time steps (np array)
     """
-<<<<<<< HEAD
     #initial state
     x = x0
     #nSteps simulation
@@ -75,10 +63,6 @@ def linear_euler_integration(A, x0, dt, nSteps):
         x = np.add(x,np.dot(A,x)*dt)
         
     return x
-=======
-    # Insert student code here
-    return x0
->>>>>>> 8bb54494a7d62144463048fe5b7ad5b46ed5994c
 
 
 if __name__ == '__main__':
