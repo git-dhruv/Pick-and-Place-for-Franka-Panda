@@ -18,11 +18,16 @@ from core.interfaces import ArmController
 rospy.init_node('demo')
 
 arm = ArmController()
+<<<<<<< HEAD
 arm.set_arm_speed(0.3)
+=======
+arm.set_arm_speed(0.2)
+>>>>>>> 8bb54494a7d62144463048fe5b7ad5b46ed5994c
 
 arm.close_gripper()
 
 q = arm.neutral_position()
+<<<<<<< HEAD
 # arm.safe_move_to_position(q)
 # arm.open_gripper()
 
@@ -64,3 +69,11 @@ q = [1,-1,-0,-1,1.1,0,1]
 arm.safe_move_to_position(q)
 arm.close_gripper()
 print(arm.get_positions()*180/pi)
+=======
+arm.safe_move_to_position(q)
+arm.open_gripper()
+
+q = np.array([0,-1 ,0,-2,0,1,1]) # TODO: try changing this!
+arm.safe_move_to_position(q)
+arm.close_gripper()
+>>>>>>> 8bb54494a7d62144463048fe5b7ad5b46ed5994c
