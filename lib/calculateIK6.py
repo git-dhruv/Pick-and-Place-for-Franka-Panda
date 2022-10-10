@@ -24,7 +24,7 @@ lass IK:
     d7 = 0.210
     
     # This variable is used to express an arbitrary joint angle 
-    Q0 = 123.45
+    Q0 = 0.123
 
 
     def panda_ik(self, target):
