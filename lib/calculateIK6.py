@@ -1,7 +1,7 @@
 import numpy as np
 from math import pi
 
-lass IK:
+class IK:
     """
     Solves the 6 DOF (joint 5 fixed) IK problem for panda robot arm
     """
@@ -24,7 +24,7 @@ lass IK:
     d7 = 0.210
     
     # This variable is used to express an arbitrary joint angle 
-    Q0 = 123.45
+    Q0 = 0.123
 
 
     def panda_ik(self, target):
@@ -90,7 +90,7 @@ lass IK:
         joints_123 = [] 
         return joint_123
     
-    def sort_joints(q, col=0):
+    def sort_joints(self, q, col=0):
         """
         Sort the joint angle matrix by ascending order 
         Args: 
