@@ -1,5 +1,6 @@
 import numpy as np
 from math import pi
+from calculateFK import FK
 
 class IK:
     """
@@ -114,6 +115,37 @@ class IK:
                 q_as_part = sort_joints(q_as[i:idx, :], col+1)
                 q_as[i:idx, :] = q_as_part
         return q_as
+
+def main(): 
+    
+    # fk solution code
+    fk = FK()
+
+    # input joints  
+    q1 = 0
+    q2 = 0
+    q3 = 0
+    q4 = -np.pi/2
+    q6 = 0
+    q7 = 0
+    
+    q_in  = np.array([q1, q2, q3, q4, 0, q6, q7])
+    [_, T_fk] = fk.forward(q_in)
+
+    # input of IK class
+    target = {'R': T_fk[0:3, 0:3], 't': T_fk[0:3, 3]}
+    ik = IK()
+    q = ik.panda_ik(target)
+    
+    # verify IK solutions 
+    for i in range(q.shape[0]):
+        [_, T_ik] = fk.forward(q[i, :])
+        print('Matrix difference = ')
+        print(T_fk - T_ik)
+        print()
+
+if __name__ == '__main__':
+    main()
 
 
 

@@ -57,10 +57,7 @@ def show_all_FK(state):
 
 # visualize the chosen IK target
 def show_target(target):
-    x = target['o'][0]
-    z = target['o'][1]
-    theta = target['theta']
-    T0_target = tf.transformations.translation_matrix(np.array([x,0,z])) @ tf.transformations.euler_matrix(0,-theta-pi/2,pi)
+    T0_target = np.vstack((np.hstack((target['R'], np.array([target['t']]).T)), np.array([[0, 0, 0, 1]])))
     show_pose(T0_target,"target")
 
 #################
