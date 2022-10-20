@@ -99,7 +99,7 @@ class IK:
         Returns: 
             q_as = nx7 joint angle matrix in ascending order 
         """
-        if col ! = 7: 
+        if col != 7: 
             q_as = q[q[:, col].argsort()]
             for i in range(q_as.shape[0]-1):
                 if (q_as[i, col] < q_as[i+1, col]):
