@@ -99,21 +99,24 @@ class IK:
         Returns: 
             q_as = nx7 joint angle matrix in ascending order 
         """
-        q_as = q[q[:, col].argsort()]
-        for i in range(q_as.shape[0]-1):
-            if (q_as[i, col] < q_as[i+1, col]):
-                # do nothing
-                pass
-            else:
-                for j in range(i+1, q_as.shape[0]):
-                    if q_as[i, col] < q_as[j, col]:
-                        idx = j
-                        break
-                    elif j == q_as.shape[0]-1:
-                        idx = q_as.shape[0]
+        if col ! = 7: 
+            q_as = q[q[:, col].argsort()]
+            for i in range(q_as.shape[0]-1):
+                if (q_as[i, col] < q_as[i+1, col]):
+                    # do nothing
+                    pass
+                else:
+                    for j in range(i+1, q_as.shape[0]):
+                        if q_as[i, col] < q_as[j, col]:
+                            idx = j
+                            break
+                        elif j == q_as.shape[0]-1:
+                            idx = q_as.shape[0]
 
-                q_as_part = self.sort_joints(q_as[i:idx, :], col+1)
-                q_as[i:idx, :] = q_as_part
+                    q_as_part = self.sort_joints(q_as[i:idx, :], col+1)
+                    q_as[i:idx, :] = q_as_part
+        else: 
+            q_as = q[q[:, -1].argsort()]
         return q_as
 
 def main(): 
