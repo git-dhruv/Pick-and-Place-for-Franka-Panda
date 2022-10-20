@@ -112,7 +112,7 @@ class IK:
                     elif j == q_as.shape[0]-1:
                         idx = q_as.shape[0]
 
-                q_as_part = sort_joints(q_as[i:idx, :], col+1)
+                q_as_part = self.sort_joints(q_as[i:idx, :], col+1)
                 q_as[i:idx, :] = q_as_part
         return q_as
 
