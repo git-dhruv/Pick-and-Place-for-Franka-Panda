@@ -8,6 +8,7 @@ from geometry_msgs.msg import TwistStamped
 from core.interfaces import ArmController
 
 from lib.calcJacobian import calcJacobian
+from lib.FK_velocity import FK_velocity
 
 #########################
 ##  RViz Communication ##
@@ -56,7 +57,7 @@ def show_all_velocity(q,i):
     qdot[i] = 1
 
     J = calcJacobian(q)
-    velocity = J @ qdot
+    velocity = FK_velocity(q, q_dot)
 
     # frame conversion
     try:
