@@ -1,4 +1,5 @@
-import numpy as np from lib.calcJacobian import calcJacobian
+import numpy as np 
+from lib.calcJacobian import calcJacobian
 
 
 
