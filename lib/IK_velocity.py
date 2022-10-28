@@ -1,5 +1,5 @@
-import numpy as np
-from lib.calcJacobian import calcJacobian
+import numpy as np from lib.calcJacobian import calcJacobian
+
 
 
 def IK_velocity(q_in, v_in, omega_in):
@@ -20,4 +20,7 @@ def IK_velocity(q_in, v_in, omega_in):
 
     dq = np.zeros((1, 7))
 
+    v_in = v_in.reshape((3,1))
+    omega_in = omega_in.reshape((3,1))
+    
     return dq
