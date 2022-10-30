@@ -12,11 +12,12 @@ from core.interfaces import ArmController
 
 from lib.calculateIK6 import IK
 
+from lib.calculateFK import FK
 rospy.init_node("visualizer")
 
 # Using your solution code
 ik = IK()
-
+fk = FK()
 #########################
 ##  RViz Communication ##
 #########################
@@ -57,10 +58,7 @@ def show_all_FK(state):
 
 # visualize the chosen IK target
 def show_target(target):
-    x = target['o'][0]
-    z = target['o'][1]
-    theta = target['theta']
-    T0_target = tf.transformations.translation_matrix(np.array([x,0,z])) @ tf.transformations.euler_matrix(0,-theta-pi/2,pi)
+    T0_target = np.vstack((np.hstack((target['R'], np.array([target['t']]).T)), np.array([[0, 0, 0, 1]])))
     show_pose(T0_target,"target")
 
 #################
@@ -85,7 +83,8 @@ targets = [
                        ]),
         't': np.array([2.56500000e-01, -3.67087878e-17, 6.43500000e-01])
 
-    },
+    }
+
 ]
 
 ####################
@@ -108,10 +107,11 @@ if __name__ == "__main__":
             print("Moving to target " + str(i) + "...")
             show_target(target)
             solutions = ik.panda_ik(target)
-            q = solutions[0,:] # choose the first of multiple solutions
-            arm.safe_move_to_position(q)
-            if i < len(targets) - 1:
-                input("Press Enter to move to next target...")
+            for j in range(4):
+                q = solutions[j,:] # choose the first of multiple solutions
+                arm.safe_move_to_position(q)
+                if j < 4:
+                    input("Press Enter to move to next target...")
 
     else:
         print("invalid option")

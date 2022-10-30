@@ -59,29 +59,13 @@ class IK:
         #Calculate theta_7
         fk = FK()
         
+        Inverted_Toe = np.linalg.inv(End_effector)
         Oc_wrist = Inverted_Toe[0:3,-1] + Inverted_Toe[0:3,2]*(d1*np.ones(3))
 
 
-        theta_7_1 = pi - atan2(Oc_wrist[1],Oc_wrist[0]) + pi/4
-        # theta_7_1 = 3*pi/4 - np.arctan2(-(Oc_wrist[1]),(Oc_wrist[0])) 
-
-        theta_7_1 = -(np.arctan2(Oc_wrist[1],Oc_wrist[0]) - pi - pi/4)
-        if theta_7_1 > 2*pi:
-            theta_7_1  = theta_7_1 - 2*pi
-        elif theta_7_1 > pi and theta_7_1<=2*pi:
-            theta_7_1 = theta_7_1 - 2*pi
-
-        if theta_7_1 > 0:
-            theta_7_2 = theta_7_1 -  pi
-        else:
-            theta_7_2 = theta_7_1 + pi
-        
-        if Oc_wrist[0] == 0 and Oc_wrist[1] ==0:
-            theta_7_1 = Q0
-            theta_7_2 = Q0
-        # theta_7_1 = -theta_7_1
+        theta_7_1 = pi - (atan2(-Oc_wrist[1],Oc_wrist[0])+pi/4)
         #Solution2
-        # theta_7_2 = theta_7_1 + pi
+        theta_7_2 = theta_7_1 + pi
         r = np.linalg.norm([Oc_wrist[0],Oc_wrist[1]])
         sol_no = 0
 
@@ -89,72 +73,71 @@ class IK:
 
         for i in range(2):
             if i==0:
-
-                T7 = fk.single_frame_transform(6,theta_7_1-pi/4)
+                T7 = fk.translx(-a6)@(fk.rotz(-pi/4)@fk.single_frame_transform(6,theta_7_1))
+                Inverted_Toe = T7@Inverted_Toe #t60
 
                 #new wrist center
                 Oc = np.array([[Oc_wrist[0],Oc_wrist[1],Oc_wrist[2],1]]).T
                 Oc = T7@Oc 
 
                 # r = np.linalg.norm([Oc[0],Oc[1]])
-                Oc = np.round([float(Oc[0])+a6,float(Oc[2])],5)
+                Oc = np.round([float(Oc[0]),float(Oc[2])],5)
 
                 theta_7 = theta_7_1
             else:
-                T7 = fk.single_frame_transform(6,theta_7_2-pi/4)
+                T7 = fk.translx(-a6)@(fk.rotz(-pi/4)@fk.single_frame_transform(6,theta_7_2))
+                Inverted_Toe = T7@Inverted_Toe #t60
 
                 #new wrist center
                 Oc = np.array([[Oc_wrist[0],Oc_wrist[1],Oc_wrist[2],1]]).T
-                print("Hutt")
-                print(Oc)
-                Oc = T7@Oc
-                print(Oc) 
+                Oc = T7@Oc 
 
                 # r = np.linalg.norm([Oc[0],Oc[1]])
-                Oc = np.round([float(Oc[0])+a6,float(Oc[2])])
+                Oc = np.round([float(Oc[0]),float(Oc[2])],5)
                 theta_7 = theta_7_2
 
-            Oy = float(Oc[1]) #Our z6 becomes z6
-            Ox = float(Oc[0]) #our x6 becomes z6
-            
-            l1 = sqrt(d5**2 + a3**2)
-            l2 = sqrt(d3**2 + a3**2)
-            D = ((Ox**2 + Oy**2) - (l1**2 + l2**2) )/(2*l1*l2) 
-            print(D)
-            if abs(D)>1:
+
+
+            num = a3*a3 + d5*d5 + a3*a3 + d3*d3 - Oc[0]**2 - Oc[1]**2
+            den = 2* (np.sqrt(a3**2 + d5**2) * np.sqrt(a3**2 + d3**2))
+
+            if abs(num/den)>1:
                 pass
             else:
-                
+
+                beta =  (np.arccos(num/den)) #This 2pi also keeps on changing
+                alpha = np.arctan(d5/a3)   
+                gamma = np.arctan(d3/a3)
+
+                theta4_1 =  2*pi - (alpha+beta+gamma) 
+                theta4_1 = np.arctan2(sin(theta4_1),cos(theta4_1))
+
+                beta2 = -beta
+                theta4_2 = 2*pi - (alpha+beta2+gamma) 
+                theta4_2 = np.arctan2(sin(theta4_2),cos(theta4_2))
 
 
-                t2 = np.arccos(D)
-                t1 = np.arctan2(Oy,Ox) - np.arctan2( (l2*sin(t2)),(l1+(l2*cos(t2))) )
-                
-                theta4_1 = (np.arctan2(d5,a3) + np.arctan2(d3,a3) + t2) - pi
-                theta_6_1 =  (t1 + np.arctan2(a3,d5)  - pi/2) 
-
-                t2 =  2*pi - np.arccos(D)
-                t1 = np.arctan2(Oy,Ox) - np.arctan2( (l2*sin(t2)),(l1+(l2*cos(t2))) )
-                theta_6_2 = (t1 - pi/2 + np.arctan2(a3,d5))
-                theta4_2 = (np.arctan2(d5,a3) + np.arctan2(d3,a3) + t2) - pi
-
-                # theta_6_1 = theta_6_1 + pi/2
-                # theta_6_2 = theta_6_2 + pi/2
-
-                if theta_6_1<-pi/2:
-                    theta_6_1 += 2*pi
-                if theta_6_2<-pi/2:
-                    theta_6_2 += 2*pi
-                
 
 
+                theta4 = theta4_1
+                num = d3*sin(theta4) - (a3*cos(theta4)-a3)
+                den = d5+a3*sin(theta4)+d3*cos(theta4)
+                theta_6 = pi/2 - (atan2(Oc[1],Oc[0]) - atan2(num,den))  #d5,d3+a3 #This quadrant needs to keep on changing #there was a minus here!?
+                theta_6_1 = theta_6
+
+
+                #Solution 2
+                theta4 = theta4_2
+                num = d3*sin(theta4) - (a3*cos(theta4)-a3)
+                den = d5+a3*sin(theta4)+d3*cos(theta4)
+                theta_6_2 = pi/2 - (atan2(Oc[1],Oc[0]) - atan2(num,den))  #d5,d3+a3 #This quadrant needs to keep on changing #there was a minus here!?
                 for j in range(2):
                     if j==0:
-                        theta_6 = theta_6_1
-                        theta4 = theta4_1
+                        theta_6 = theta_6
+                        theta4 = -theta4_1
                     else:
                         theta_6 = theta_6_2
-                        theta4 = theta4_2
+                        theta4 = -theta4_2
                     # robot1.plot(q)
                     print(theta4*180/pi)
                     q = np.array([0,0,0,theta4,0,theta_6,theta_7])
@@ -172,7 +155,6 @@ class IK:
                     else:
                         q3 = -np.arctan2(R_orient[2,0],R_orient[2,1])
                         q1 = np.arctan2(-R_orient[0,2],R_orient[1,2])
-                    q2,q3,q1 = 0,0,0
                     if i==0:
                         if j==0:                
                             Q[sol_no,:] = np.array([q1,q2,q3,-theta4_1,0,theta_6_1,theta_7_1])
@@ -213,7 +195,6 @@ class IK:
 
         # q = q[0:soltrack,:]
         q_scheme = np.zeros((8,7))        
-        return Q[0:sol_no,:]
         if sol_no==0:
             return np.array([[]])
 
@@ -224,13 +205,11 @@ class IK:
                 if self.joint_lim(Q[i,:]):
                     joints = joints+1
                     q_t = np.array([atan2(sin(i),cos(i)) for i in Q[i,:]])
-                    q_scheme[joints-1,:] = q_t
+                    q_scheme[i,:] = q_t
         
 
-            q = q_scheme[0:joints,:]
+            q = q_scheme[0:joints-1,:]
 
-        if joints==0:
-            return np.array([[]])
         # Student's code goes in between:
 
         ## DO NOT EDIT THIS PART 
@@ -252,7 +231,7 @@ class IK:
         print(q1_bool , q2_bool , q3_bool , q4_bool , q6_bool , q7_bool)
 
         return (q1_bool and q2_bool and q3_bool and q4_bool and q6_bool and q7_bool)
-    
+
     def wrap(self,angle):
         return np.arctan2(sin(angle),cos(angle))
     def kin_decouple(self, target):
@@ -264,7 +243,7 @@ class IK:
                 't': numpy array of the end effector position relative to the robot base 
 
         Returns:
-             wrist_pos = 3x1 numpy array of the position of the wrist center in frame 7
+                wrist_pos = 3x1 numpy array of the position of the wrist center in frame 7
         """
         wrist_pos = []
         return wrist_pos 
@@ -276,7 +255,7 @@ class IK:
             wrist_pos: 3x1 numpy array of the position of the wrist center in frame 7
 
         Returns:
-             joints_467 = nx3 numpy array of all joint angles of joint 4, 6, 7
+                joints_467 = nx3 numpy array of all joint angles of joint 4, 6, 7
         """
         joints_467 = []
         return joints_467
@@ -293,7 +272,7 @@ class IK:
         """
         joints_123 = [] 
         return joint_123
-    
+
     def sort_joints(self, q, col=0):
         """
         Sort the joint angle matrix by ascending order 
@@ -592,10 +571,10 @@ def main():
     fk = FK()
 
     # input joints  
-    q1 = 0
+    q1 = np.pi/4
     q2 = 0
     q3 = 0
-    q4 = -pi/4
+    q4 = -np.pi/2
     q6 = 0
     q7 = np.pi/4
     
