@@ -57,7 +57,7 @@ def show_all_velocity(q,i):
     qdot[i] = 1
 
     J = calcJacobian(q)
-    velocity = FK_velocity(q, q_dot)
+    velocity = FK_velocity(q, qdot)
 
     # frame conversion
     try:
