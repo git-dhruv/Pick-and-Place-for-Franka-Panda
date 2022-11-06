@@ -11,6 +11,10 @@ from core.utils import time_in_seconds
 from lib.IK_velocity import IK_velocity
 from lib.calculateFK import FK
 
+from gazebo_msgs.msg import LinkStates
+from copy import deepcopy
+
+import time
 class JacobianDemo():
     """
     Demo class for testing Jacobian and Inverse Velocity Kinematics.
@@ -24,6 +28,24 @@ class JacobianDemo():
     counter = 0
     x0 = np.array([0.307, 0, 0.487]) # corresponds to neutral position
     last_iteration_time = None
+
+    flag = 0
+
+
+    #Modified
+    error = 0
+    no_iterations = 0
+    xold = np.array([0.307, 0, 0.487])
+    x = np.array([0.307, 0, 0.487])
+    q1 = []
+    q2 = []
+    q3 = []
+    q4 = []
+    q5 = []
+    q6 = []
+    q7 = []
+    v_accum = 0
+    v_counter = 0
 
     ##################
     ## TRAJECTORIES ##
@@ -67,12 +89,11 @@ class JacobianDemo():
         """
 
         x0 = np.array([0.307, 0, 0.487]) # corresponds to neutral position
+        
 
         ## STUDENT CODE GOES HERE
-
-        # TODO: replace these!
-        xdes = JacobianDemo.x0
-        vdes = np.array([0,0,0])
+        xdes = x0 + np.array([0,ry*cos(f*t)-ry,rz*sin(f*t)])
+        vdes = np.array([0,-ry*f*sin(f*t),rz*f*cos(f*t)])
 
         ## END STUDENT CODE
 
@@ -92,10 +113,17 @@ class JacobianDemo():
         vdes = 0x3 np array of target end effector linear velocity in the world frame
         """
         ## STUDENT CODE GOES HERE
+        #I believe we can find xdes and then differentiate?
+        x0 = JacobianDemo.x0
+        # x0 = np.array([0.307, -L*2, 0.487])
 
+        # xdes = x0 + np.array([0,L*sin(f*t),0])
+        # vdes = np.array([0,L*f*cos(f*t),0])
+        xdes = x0 + np.array([0,0, L*sin(f*t)])
+        vdes = np.array([0,0,L*f*cos(f*t)])
         # TODO: replace these!
-        xdes = JacobianDemo.x0
-        vdes = np.array([0,0,0])
+        # xdes = JacobianDemo.x0
+        # vdes = np.array([0,0,0])
 
         ## END STUDENT CODE
 
@@ -123,21 +151,27 @@ class JacobianDemo():
         if self.active:
 
             try:
+                
+
                 t = time_in_seconds() - self.start_time
 
                 # get desired trajectory position and velocity
                 xdes, vdes = trajectory(t)
+                
 
                 # get current end effector position
                 q = state['position']
                 joints, T0e = self.fk.forward(q)
-                x = (T0e[0:3,3])
+
+                self.xold = deepcopy(self.x)
+                self.x = (T0e[0:3,3])
 
                 # First Order Integrator, Proportional Control with Feed Forward
-                kp = 20
-                v = vdes + kp * (xdes - x)
+                kp = 20 #0.0002427265629863269 0.00022433558505511385
+                # vdes = 0
+                v = vdes + kp * (xdes - self.x)
 
-                # Velocity Inverse Kinematics
+                # Velocity Inverse Kinematics #np.nan,np.nan,np.nan
                 dq = IK_velocity(q,v,np.array([np.nan,np.nan,np.nan]))
 
                 # Get the correct timing to update with the robot
@@ -148,9 +182,62 @@ class JacobianDemo():
                 self.last_iteration_time = time_in_seconds()
                 
                 new_q = q + self.dt * dq
+
+                # arm.safe_move_to_position(new_q)
                 
                 arm.safe_set_joint_positions_velocities(new_q, dq)
+
+                """
+                This part is famously known as Dhruv's Mess
+                """
+                test2 = 0
+                test3 = 1
+                if test2:
+                    """
+                    This is for test2! - Line trajectory!
+                    """
+                    if (abs(self.x[1]-0.2)<=0.0001):
+                        print(f"Side 1: {time_in_seconds()}")
+                        self.v_accum = 0
+                        self.v_counter = 0
+                    if (abs(self.x[1]+0.2)<=0.0001):
+                        print(f"Side 2: {time_in_seconds()}")
+                        print(self.v_accum/self.v_counter)
+                    self.v_accum += v
+                    self.v_counter += 1
+                # /gazebo/link_states
+                # rospy.Subscriber('/gazebo/link_states', LinkStates, self.joint_callback)
+                if test3:
+                    v_calc = (self.x - self.xold) #Calculate velocity
+                    # print(self.dt)
+                    # self.error += np.linalg.norm((v*self.dt - v_calc))
+                    #stuff - for position - not for experimentations
+                    q = state['position']
+                    joints, T0e = self.fk.forward(q)
+                    x = (T0e[0:3,3])
+                    self.error += np.linalg.norm(x-xdes)                    
+                    self.no_iterations += 1
+
+                # self.q1.append(q[0])
+                # self.q2.append(q[1])
+                # self.q3.append(q[2])
+                # self.q4.append(q[3])
+                # self.q5.append(q[4])
+                # self.q6.append(q[5])
+                # self.q7.append(q[6])
+                    if t>=20 and self.flag==0:
+                        self.flag = 1
+                        print("Error after 20 seconds of trajectory")
+                        print(self.error/self.no_iterations)
+                        print(self.dt)
+                    
+                    # a = [max(self.q1)-min(self.q1),max(self.q2)-min(self.q2),max(self.q3)-min(self.q3),max(self.q4)-min(self.q4),max(self.q5)-min(self.q5),max(self.q6)-min(self.q6),max(self.q7)-min(self.q7)]
+                    # print([round(i*180/pi,3) for i in a] )
+
                 
+
+
+
                 # Downsample visualization to reduce rendering overhead
                 self.counter = self.counter + 1
                 if self.counter == 10:
@@ -159,6 +246,20 @@ class JacobianDemo():
 
             except rospy.exceptions.ROSException:
                 pass
+
+    def joint_callback(self,data): # data of type JointState
+        # Each subscriber gets 1 callback, and the callback either
+        # stores information and/or computes something and/or publishes
+        # It _does not!_ return anything
+        global g_joint_states, g_positions, posx,posy,posz
+        g_joint_states = data
+        # rostopic echo -n 1 /gazebo/model_states
+        g_positions = data.pose
+        print(g_positions[0].position.x)
+        posx = g_positions[0].position.x
+        posy = g_positions[0].position.y
+        posz = g_positions[0].position.z
+        print(posx,posy,posz)
 
 
 if __name__ == "__main__":

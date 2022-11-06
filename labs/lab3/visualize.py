@@ -57,7 +57,7 @@ def show_all_velocity(q,i):
     qdot[i] = 1
 
     J = calcJacobian(q)
-    velocity = FK_velocity(q, q_dot)
+    velocity = FK_velocity(q, qdot)
 
     # frame conversion
     try:
@@ -79,6 +79,7 @@ def show_all_velocity(q,i):
 
 # The first configuration below matches the dimensional drawing in the handout
 configurations = [
+    np.array([ 0,pi/2,0,0,0,pi/4,0 ]),
     np.array([ 0,    0,     0, -pi/2,     0, pi/2, pi/4 ]),
     np.array([ pi/2, 0,  pi/4, -pi/2, -pi/2, pi/2,    0 ]),
     np.array([ 0,    0, -pi/2, -pi/4,  pi/2, pi,   pi/4 ]),
@@ -97,6 +98,7 @@ if __name__ == "__main__":
     for i, q in enumerate(configurations):
         print("Moving to configuration " + str(i) + "...")
         arm.safe_move_to_position(q)
+        print(arm.get_gripper_state())
         # iterate thru each joint, activating each, one at a time
         for j in range(7):
             show_all_velocity(q,j)

@@ -20,6 +20,10 @@ class FK():
                                                 [0,0,0,0,0,0,0,0.015],
                                                 [0.141,0,0.195,0,0.125,-0.015,0.051,0.]])
 
+        self.approach = np.zeros((3,8))
+        
+        self.approach[:,0] = np.array([[0],[0],[1]]).reshape(3,)
+
 
 
 
@@ -66,6 +70,9 @@ class FK():
             jointPositions[i+1,1] = float(joint_coordinates[1][3])
             jointPositions[i+1,2] = float(joint_coordinates[2][3])
 
+            #Don't mind me ruining old code
+            self.approach[:,i+1] = T0e[0:3,2].reshape(3,)
+
         #This is for first Joint - this is the reason you see i+1 everywhere            
         jointPositions[0,0] = 0
         jointPositions[0,1] = 0
@@ -76,6 +83,8 @@ class FK():
         return jointPositions, T0e
 
     # feel free to define additional helper methods to modularize your solution for lab 1
+    def get_approach_for_all(self):
+        return self.approach
 
     def translz(self,x):
         """

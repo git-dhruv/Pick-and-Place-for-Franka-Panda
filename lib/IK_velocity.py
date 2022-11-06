@@ -1,8 +1,7 @@
 import numpy as np 
+from math import sin,cos,pi,atan2
 from lib.calcJacobian import calcJacobian
-
-
-
+     
 def IK_velocity(q_in, v_in, omega_in):
     """
     :param q_in: 1 x 7 vector corresponding to the robot's current configuration.
@@ -19,9 +18,30 @@ def IK_velocity(q_in, v_in, omega_in):
 
     ## STUDENT CODE GOES HERE
 
-    dq = np.zeros((1, 7))
+#     dq = np.zeros((1, 7))
 
     v_in = v_in.reshape((3,1))
     omega_in = omega_in.reshape((3,1))
+
+    twist = np.vstack((v_in,omega_in))
+
     
+
+    nan_indices = np.argwhere(np.isnan(twist.reshape(6,)))
+
+    J = calcJacobian(q_in)
+
+    twist = np.delete(twist,nan_indices,axis=0)
+    J = np.delete(J,nan_indices,axis=0)
+
+
+    if np.linalg.det(J@J.T)<=0.0001:
+          dq = np.linalg.lstsq(J,twist,rcond=None)
+          dq = dq[0]       
+
+    else:
+          dq = np.linalg.pinv(J)@twist
+          
+    dq = dq.reshape(7,)
     return dq
+
