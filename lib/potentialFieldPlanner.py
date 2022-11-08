@@ -2,8 +2,8 @@ import numpy as np
 from math import pi, acos
 from scipy.linalg import null_space
 from copy import deepcopy
-'''
-from lib.calcJacobian import calcJacobian
+
+from lib.calcJacobian import calcJacobian,calcGenJacobian
 from lib.calculateFK import FK
 from lib.detectCollision import detectCollision
 from lib.loadmap import loadmap
@@ -12,7 +12,7 @@ from calcJacobian import calcJacobian
 from calculateFK import FK
 from detectCollision import detectCollision
 from loadmap import loadmap
-
+'''
 
 class PotentialFieldPlanner:
 
@@ -41,6 +41,17 @@ class PotentialFieldPlanner:
         self.max_steps = max_steps
         self.min_step_size = min_step_size
 
+        #Potential Field Parameters - Spong Convention
+
+        #Attractor Parameters
+        self.d = 0.1
+        self.zeta = 1
+
+        #Repulsive Parameters
+        self.eta = 1
+        self.pho_0 =0.5 
+
+
 
     ######################
     ## Helper Functions ##
@@ -48,8 +59,8 @@ class PotentialFieldPlanner:
     # The following functions are provided to you to help you to better structure your code
     # You don't necessarily have to use them. You can also edit them to fit your own situation 
 
-    @staticmethod
-    def attractive_force(target, current):
+    # @staticmethod
+    def attractive_force(self,target, current):
         """
         Helper function for computing the attactive force between the current position and
         the target position for one joint. Computes the attractive force vector between the 
@@ -65,15 +76,21 @@ class PotentialFieldPlanner:
         """
 
         ## STUDENT CODE STARTS HERE
-
         att_f = np.zeros((3, 1)) 
+        dist = np.linalg.norm(target-current)
+        
+        if dist<=self.d:
+            #Parabolic
+            att_f = -self.zeta*(target - current)
+        else:
+            att_f = -self.d*self.zeta*(target - current)/dist
 
         ## END STUDENT CODE
 
         return att_f
 
-    @staticmethod
-    def repulsive_force(obstacle, current, unitvec=np.zeros((3,1))):
+    # @staticmethod
+    def repulsive_force(self,obstacle, current, unitvec=np.zeros((3,1))):
         """
         Helper function for computing the repulsive force between the current position
         of one joint and one obstacle. Computes the repulsive force vector between the 
@@ -92,7 +109,16 @@ class PotentialFieldPlanner:
 
         ## STUDENT CODE STARTS HERE
 
-        rep_f = np.zeros((3, 1)) 
+        rep_f = np.zeros((3, 1))
+        
+        #Get everything inside, bit of a weird choice to give unitvec in function arguments
+        pho,unitvec = PotentialFieldPlanner.dist_point2box(current,obstacle)
+
+        for i in range(3):
+            if pho[i]>self.pho_0:
+                rep_f[i] = 0
+            else:
+                rep_f[i] = float(self.eta*(1/pho[i] - 1/self.pho_0)*unitvec[i]/pho[i]**2)
 
         ## END STUDENT CODE
 
@@ -147,8 +173,7 @@ class PotentialFieldPlanner:
         unit[np.isinf(unit)] = 0
         return dist, unit
 
-    @staticmethod
-    def compute_forces(target, obstacle, current):
+    def compute_forces(self,target, obstacle, current):
         """
         Helper function for the computation of forces on every joints. Computes the sum 
         of forces (attactive, repulsive) on each joint. 
@@ -169,6 +194,20 @@ class PotentialFieldPlanner:
         ## STUDENT CODE STARTS HERE
 
         joint_forces = np.zeros((3, 7)) 
+
+        #For each joint
+        for j in range(7):        
+            #Calculate attractive force
+            F_att = self.attractive_force(target[:,j],current[:,j])
+            F_rep = 0
+            #For each obstacle
+            for i in range(len(obstacle[:,0])):
+                #Calculate Repulsive Force for that joint
+                F_rep += self.repulsive_force(obstacle[:,i],current[:,j])
+
+            #Store in the array
+            joint_forces[:,j] = F_att + F_rep    
+
 
         ## END STUDENT CODE
 
@@ -191,7 +230,12 @@ class PotentialFieldPlanner:
 
         ## STUDENT CODE STARTS HERE
 
-        joint_torques = np.zeros((1, 7)) 
+        joint_torques = np.zeros((1, 7))
+        #For each joints
+        for i in range(7):
+            
+
+        
 
         ## END STUDENT CODE
 
@@ -217,7 +261,7 @@ class PotentialFieldPlanner:
 
         ## STUDENT CODE STARTS HERE
 
-        distance = 0
+        distance = np.array([np.linalg.norm(target[i]-current[i]) for i in range(7)])
 
         ## END STUDENT CODE
 
@@ -242,6 +286,7 @@ class PotentialFieldPlanner:
         ## STUDENT CODE STARTS HERE
 
         dq = np.zeros((1, 7))
+        
 
         ## END STUDENT CODE
 
