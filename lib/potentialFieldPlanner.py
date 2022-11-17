@@ -313,7 +313,7 @@ if __name__ == "__main__":
     
     # show results
     for i in range(q_path.shape[0]):
-        error = PotentialFieldPlanner.q_distance(q, goal)
-        print('iteration:',i,' q =', q_path[i, :], ' error={error:3.4f}'.format(error=error))
+        error = PotentialFieldPlanner.q_distance(q_path[i, :], goal)
+        print('iteration:',i,' q =', q_path[i, :], ' error={error}'.format(error=error))
 
     print("q path: ", q_path)
