@@ -22,10 +22,10 @@ mapNames = ["map1",
 if __name__ == "__main__":
 
     if len(sys.argv) < 3:
-        print("usage:\n\tpython planning_demo.py 1 potentialfield \n\tpython planning_demo.py 2 potentialfield\n\tpython planning_demo.py 3 astar ...")
+        print("usage:\n\tpython planning_demo.py 1 potentialfield \n\tpython planning_demo.py 2 potentialfield\n\tpython planning_demo.py 1 astar ...")
         exit()
 
-    rospy.init_node('Potential Field')
+    rospy.init_node('potentialfield')
 
     arm = ArmController()
     index = int(sys.argv[1])-1
@@ -42,15 +42,17 @@ if __name__ == "__main__":
         path = astar(deepcopy(map_struct), deepcopy(starts[index]), deepcopy(goals[index]))
     elif str(sys.argv[2]) == 'potentialfield':
         print('Planning with potential field')
-        path = PotentialFieldPlanner(deepcopy(map_struct), deepcopy(starts[index]), deepcopy(goals[index]))
+        planner = PotentialFieldPlanner()
+        path = planner.plan(deepcopy(map_struct), deepcopy(starts[index]), deepcopy(goals[index]))
     else:
         print('Undefinded planning method')
     stop = perf_counter()
     dt = stop - start
     print("Planning took {time:2.2f} sec. Path is.".format(time=dt))
-    print(np.round(path,4))
+    print(path)
     input("Press Enter to Send Path to Arm")
-
-    for joint_set in path:
-        arm.safe_move_to_position(joint_set)
+    
+    gap = 100
+    for i in range(0, path.shape[0], gap):
+        arm.safe_move_to_position(path[i, :])
     print("Trajectory Complete!")

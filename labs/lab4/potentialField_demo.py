@@ -26,7 +26,7 @@ if __name__ == "__main__":
         print("usage:\n\tpython potentialField_demo.py 1\n\tpython potentialField_demo.py 2\n\tpython potentialField_demo.py 3 ...")
         exit()
 
-    rospy.init_node('Potential Field')
+    rospy.init_node('potentialfield')
 
     arm = ArmController()
     index = int(sys.argv[1])-1
@@ -38,13 +38,15 @@ if __name__ == "__main__":
 
     print("Starting to plan")
     start = perf_counter()
-    path = PotentialFieldPlanner(deepcopy(map_struct), deepcopy(starts[index]), deepcopy(goals[index]))
+    planner = PotentialFieldPlanner()
+    path = planner.plan(deepcopy(map_struct), deepcopy(starts[index]), deepcopy(goals[index]))
     stop = perf_counter()
     dt = stop - start
     print("Potential Field took {time:2.2f} sec. Path is.".format(time=dt))
-    print(np.round(path,4))
+    print(path)
     input("Press Enter to Send Path to Arm")
 
-    for joint_set in path:
-        arm.safe_move_to_position(joint_set)
+    gap = 100
+    for in in range(0, path.shape[0], gap):
+        arm.safe_move_to_position(path[i, :])
     print("Trajectory Complete!")
