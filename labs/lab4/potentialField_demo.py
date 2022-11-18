@@ -47,6 +47,6 @@ if __name__ == "__main__":
     input("Press Enter to Send Path to Arm")
 
     gap = 100
-    for in in range(0, path.shape[0], gap):
+    for i in range(0, path.shape[0], gap):
         arm.safe_move_to_position(path[i, :])
     print("Trajectory Complete!")
