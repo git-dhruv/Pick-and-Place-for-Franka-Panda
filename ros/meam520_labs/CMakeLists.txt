@@ -50,6 +50,8 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files(
   FILES
   TransformStampedList.msg
+  BlockDetection.msg
+  BlockDetectionArray.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -153,8 +155,8 @@ catkin_install_python(PROGRAMS scripts/worldConverter.py
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
 install(PROGRAMS
-   scripts/arm_controller.py
    scripts/block_spawner.py
+   scripts/getBlockPose.py
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

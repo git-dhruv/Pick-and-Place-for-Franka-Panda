@@ -42,7 +42,7 @@
 
 
      <model name='tableright'>
-       <pose> 0 .978 0 0 0 0</pose>
+       <pose> 0 .9 0 0 0 0</pose>
        <link name='tabletop'>
          <self_collide>0</self_collide>
          <enable_wind>0</enable_wind>
@@ -85,9 +85,9 @@
              </box>
            </geometry>
            <material>
-             <ambient>.8 .8 .8 1</ambient>
-             <diffuse>.8 .8 .8 1</diffuse>
-             <specular>.8 .8 .8 1</specular>
+             <ambient>.1 .1 .1 1</ambient>
+             <diffuse>.1 .1 .1 1</diffuse>
+             <specular>.1 .1 .1 1</specular>
              <emissive>0 0 0 0</emissive>
            </material>
            <transparency>0</transparency>
@@ -284,7 +284,7 @@
 
 
      <model name='tableleft'>
-       <pose> 0 -.978 0 0 0 0</pose>
+       <pose> 0 -.9 0 0 0 0</pose>
        <link name='link'>
          <self_collide>0</self_collide>
          <enable_wind>0</enable_wind>
@@ -311,9 +311,9 @@
              </box>
            </geometry>
            <material>
-             <ambient>.8 .8 .8 1</ambient>
-             <diffuse>.8 .8 .8 1</diffuse>
-             <specular>.8 .8 .8 1</specular>
+             <ambient>.1 .1 .1 1</ambient>
+             <diffuse>.1 .1 .1 1</diffuse>
+             <specular>.1 .1 .1 1</specular>
              <emissive>0 0 0 0</emissive>
            </material>
            <transparency>0</transparency>
