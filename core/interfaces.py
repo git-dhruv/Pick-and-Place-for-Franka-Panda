@@ -198,7 +198,7 @@ class ObjectDetector:
 			H_cam_block = R.from_quat(rot).as_matrix()
 			H_cam_block = np.append(H_cam_block, np.array(trans).reshape(3,1), axis=1)
 			H_cam_block = np.append(H_cam_block, np.array([0,0,0,1]).reshape(1,4), axis=0)
-			blocks.append((block_name, H_cam_block, is_dynamic))
+			blocks.append((block_name, H_cam_block))
 		
 		self.detections = blocks
 
