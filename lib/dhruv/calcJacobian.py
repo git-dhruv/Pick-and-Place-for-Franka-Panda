@@ -1,8 +1,5 @@
 import numpy as np
-try:
-    from lib.calculateFK import FK
-except:
-    from calculateFK import FK
+from lib.calculateFK import FK
 
 def calcJacobian2(q_in):
     """

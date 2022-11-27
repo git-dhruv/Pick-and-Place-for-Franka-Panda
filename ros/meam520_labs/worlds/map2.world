@@ -18,7 +18,7 @@
             </box>
           </geometry>
         </visual>
-        <collision name='collision'>
+        <collision name='collision1'>
           <laser_retro>0</laser_retro>
           <geometry>
             <box>
@@ -40,7 +40,7 @@
             </box>
           </geometry>
         </visual>
-        <collision name='collision'>
+        <collision name='collision1'>
           <laser_retro>0</laser_retro>
           <geometry>
             <box>

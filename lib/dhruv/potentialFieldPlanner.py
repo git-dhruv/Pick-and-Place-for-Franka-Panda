@@ -4,20 +4,19 @@ from scipy.linalg import null_space
 from copy import deepcopy
 
 import random
-try:
-    from lib.calcJacobian import calcJacobian,calcGenJacobian
-    from lib.calculateFK import FK
-    from lib.detectCollision import detectCollision,plotBox,detectCollisionOnce
-    from lib.loadmap import loadmap
-except:
-    from calcJacobian import calcJacobian,calcGenJacobian
-    from calculateFK import FK
-    from detectCollision import detectCollision,plotBox,detectCollisionOnce
-    from loadmap import loadmap
+from lib.calcJacobian import calcJacobian,calcGenJacobian
+from lib.calculateFK import FK
+from lib.detectCollision import detectCollision,plotBox
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import matplotlib.pyplot as plt
-
+from lib.loadmap import loadmap
+'''
+from calcJacobian import calcJacobian
+from calculateFK import FK
+from detectCollision import detectCollision
+from loadmap import loadmap
+'''
 # export PYTHONPATH=$PYTHONPATH:`pwd`
 
 class PotentialFieldPlanner:
@@ -50,24 +49,18 @@ class PotentialFieldPlanner:
         #Potential Field Parameters - Spong Convention
 
         #Attractor Parameters
-        self.d = 0.65
-        self.zeta = [.1,.1,.1,.1,.5,.5,.2] #[500,20,20,10,5,20,200]
+        self.d = 0.6
+        self.zeta = [500,20,20,10,5,20,200]
+        # self.zeta = [1]*10#[5,2,2000,1000,500,2000,20000]
+
 
         #Repulsive Parameters
         self.eta = 10
         self.pho_0 = .1
 
-        #Take the first step very slowly
-        self.alpha = 0.0005
+        self.alpha = 0.1
 
-        self.delta = 0.12
         self.data_logger = []
-
-        self.obstacle = None
-        self.MAXITER = 15000
-
-
-        self.DhruvPlot = 0
 
 
 
@@ -77,6 +70,7 @@ class PotentialFieldPlanner:
     # The following functions are provided to you to help you to better structure your code
     # You don't necessarily have to use them. You can also edit them to fit your own situation 
 
+    # @staticmethod
     def attractive_force(self,target, current, i):
         """
         Helper function for computing the attactive force between the current position and
@@ -105,6 +99,7 @@ class PotentialFieldPlanner:
 
         return att_f
 
+    # @staticmethod
     def repulsive_force(self,obstacle, current, pho,unitvec=np.zeros((3,1))):
         """
         Helper function for computing the repulsive force between the current position
@@ -129,7 +124,7 @@ class PotentialFieldPlanner:
             return rep_f
 
         if pho==0:
-            pho = 1e-10
+            pho = 0.00001
 
         rep_f = (self.eta*((1/pho) - 1/self.pho_0)*-unitvec/(pho**2))
 
@@ -138,14 +133,12 @@ class PotentialFieldPlanner:
         return rep_f
 
     @staticmethod
-    def dist_point2box(p, box, itr=0):
+    def dist_point2box(p, box):
         """
         Helper function for the computation of repulsive forces. Computes the closest point
         on the box to a given point 
     
         INPUTS:
-        return distance
-    
         p - nx3 numpy array of points [x,y,z]
         box - 1x6 numpy array of minimum and maximum points of box
 
@@ -178,15 +171,12 @@ class PotentialFieldPlanner:
         # convert to distance
         distances = np.vstack([dx, dy, dz]).T
         dist = np.linalg.norm(distances, axis=1)
-        return distance
-    
 
         # Figure out the signs
         signs = np.sign(boxCenter-p)
 
         # Calculate unit vector and replace with
         unit = distances / dist[:, np.newaxis] * signs
-
         unit[np.isnan(unit)] = 0
         unit[np.isinf(unit)] = 0
         return dist, unit
@@ -221,11 +211,12 @@ class PotentialFieldPlanner:
             F_att[:,j] = self.attractive_force(target[:,j],current[:,j],j)
 
             #For each obstacle
-            obstacle = self.obstacle
+            obstacle = obstacle.reshape((len(obstacle),6))
             for i in range(len(obstacle)):
                 #Calculate Repulsive Force for that joint
                 pho,unitvec = PotentialFieldPlanner.dist_point2box(current.T,obstacle[i,:])    
-                F_rep[:,j] += self.repulsive_force(obstacle[i,:],current[:,j],pho[j],unitvec[j,:].reshape(3,1)).reshape(3,)
+                F_rep[:,j] += self.repulsive_force(obstacle[i,:],current[:,j],0.98*pho[j],unitvec[j,:].reshape(3,1)).reshape(3,)
+
 
         #Store in the array
         joint_forces = np.add(F_att, F_rep)    
@@ -345,24 +336,6 @@ class PotentialFieldPlanner:
     @staticmethod
     def wrapper(angle):
         return atan2(sin(angle),cos(angle))
-    
-    def inflateObs(self,obstacles,lowerdelta=0):
-        obstacles = obstacles.reshape((len(obstacles),6))
-        for i in range(len(obstacles)):
-            if lowerdelta:
-                obstacles[i,:] = np.add(obstacles[i,:],[-self.delta*.2,-self.delta*.2,-self.delta*.2,self.delta*.2,self.delta*.2,self.delta*.2])
-            else:
-                obstacles[i,:] = np.add(obstacles[i,:],[-self.delta,-self.delta,-self.delta,self.delta,self.delta,self.delta])
-        return obstacles
-
-    def checkCollision(self,current):
-        collide = 0
-        for i in range(len(self.obstacle)):
-            pho,_ = PotentialFieldPlanner().dist_point2box(current.T,self.obstacle[i,:],self.itr)
-            collide = collide or np.any(pho<=0.01)
-        return collide
-                
-
 
     ###############################
     ### Potential Feild Solver  ###
@@ -386,83 +359,67 @@ class PotentialFieldPlanner:
 
         q_path = np.array([]).reshape(0,7)
 
-        #Get the start in q
         q = deepcopy(start)
-        #Get goal in qf
         qf = goal
-        #Start path from start
         q_path = np.concatenate((q_path,[q]))
-        #Set the last angle as final angle - no impact on position
         q[-1] = qf[-1]
-        #Counters for randomwalk and iterations
-        randomwalk = 0
-        itr = 0
+        # q_path = np.concatenate((q_path,[qf]))
 
-        #My data logging capabilities are demonstrated here (jk)
         final,_ = FK().forward(qf)
-        #Plotter Like a pyplot simulation
-        if self.DhruvPlot:
-            fig = plt.figure()
-            ax = Axes3D(fig)
-            for j in range(6):
-                ax.plot([0,final[j+1,0]],[0,final[j+1,1]],[0,final[j+1,2]])
+        itr = 0 
 
-        self.obstacle = self.inflateObs(np.array(map_struct.obstacles))
-        obstacle = deepcopy(self.obstacle)
+        # fig = plt.figure()
+        # ax = Axes3D(fig)
+        # for j in range(6):
+        #     ax.plot([0,final[j+1,0]],[0,final[j+1,1]],[0,final[j+1,2]])
+
         while True:
-            self.itr = itr
-            ## STUDENT CODE STARTS HERE
 
-            #!==Debugging and Datalogging==!#
+            ## STUDENT CODE STARTS HERE
             #Debugger
-            if(itr%1000==0):
+            if(itr%100==0):
                 print(np.linalg.norm(q-qf))
-            #Datalogger
-            if (itr%1==0):
-                self.data_logger.append(np.linalg.norm(q-qf))
-                            
-            #!==Compute gradient==!# 
             
+            #datalogger
+            if (itr%10==0):
+                self.data_logger.append(np.linalg.norm(q-qf))
+                
+            
+            # The following comments are hints to help you to implement the planner
+            # You don't necessarily have to follow these steps to complete your code 
+            
+            # Compute gradient 
             dq = self.compute_gradient(q,goal,map_struct)
             dq[0][-1] = 0 #Changing last joint angle won't be benificial and add to errors
             
-            #Get current joint position and future joint position            
-            current,_ = FK().forward(q)
-            newq = q + dq    
-            new_pos,_ = FK().forward(newq[0])
-
-            #!==Collision Avoidance==!#
-            #if current position is colliding then we are done
-            # if self.checkCollision(current.T):
-            #     return q_path
             
-            #Check1 - Collision of new joint position and obstacle
-            collide =  self.checkCollision(new_pos.T)
+            # q = q+dq
 
-            #Check 2 - Collision when moving from joint position 1 to joint position 2
-            for i in range(len(obstacle)):
-                line_pt1 = current
-                line_pt2 = new_pos
-                box = np.array(obstacle[i,:])
-                collide = collide or np.any(detectCollision(line_pt1,line_pt2,box))
-                #Check 3 - Collision of robot linkages with the obstacle
-                collide = collide or np.any([detectCollisionOnce(new_pos[j,:],new_pos[j+1,:],box) for j in range(7)])
-            
-            #If collide then force a random walk, and don't change q
-            if collide:
-                print("Collided:", itr)
-                q = [q]
-                forcerandomwalk = True
-            
-            #Else change the q
-            else:
-                q = q+dq 
-                forcerandomwalk = False
 
-            #IGNORE THIS
-            if self.DhruvPlot:                
+            # YOU NEED TO CHECK FOR COLLISIONS WITH OBSTACLES
+            # TODO: Figure out how to use the provided function 
+            if True: #REMEMBER TO COMMEND Q+DQ AND UNCOMMEND COLLIDE=0
+                current,_ = FK().forward(q)
+                obstacle = np.array(map_struct.obstacles)
+                newq = q+dq    
+                new_pos,_ = FK().forward(newq[0])
+                collide = 0
+                obstacle = obstacle.reshape((len(obstacle),6))
+                for i in range(len(obstacle)):
+                    line_pt1 = current[1:,:]
+                    line_pt2 = new_pos[1:,:]
+                    box = np.array(obstacle[i,:])
+                    collide = np.any(detectCollision(line_pt1,line_pt2,box))
+                if collide:
+                    q = [q]
+                    forcerandomwalk = True
+                else:
+                    q = q+dq 
+                    forcerandomwalk = False
+            
+            if False:                
                 for i in range(7):
-                    # pho,unitvec = PotentialFieldPlanner().dist_point2box(current[i+1,:].reshape((1,3)),box)
+                    pho,unitvec = PotentialFieldPlanner().dist_point2box(current[i+1,:].reshape((1,3)),box)
                     if detectCollision(line_pt1, line_pt2, box)[i]:
                         ax.plot([line_pt1[i,0], line_pt2[i,0]], [line_pt1[i,1], line_pt2[i,1]], [line_pt1[i,2], line_pt2[i,2]], 'r')
                     else:
@@ -505,109 +462,77 @@ class PotentialFieldPlanner:
                 ax.set_xlim([-1/2,1/2])
                 ax.set_ylim([-1/2,1/2])
                 ax.set_zlim([0,1])
-                if False and forcerandomwalk:
-                    plt.pause(1000)
                 plt.pause(.0010)
                 ax.clear()
 
 
+
             #Adaptive Gradiant Descent - Much better control
-            if np.linalg.norm(q-qf)<.8: 
-                self.alpha = 0.05
-                randomobs = 0.001    
+            if np.linalg.norm(q-qf)<1: 
+                self.alpha = 0.05  
+                randomobs = 0.0005
             else:
                 self.alpha = 0.1
-                randomobs = 0.075
-                
+                randomobs = 0.05
+
 
             # Termination Conditions
-            if round(np.linalg.norm(q-qf),3)<0.1 or itr>self.MAXITER: 
-                # if itr<self.MAXITER: #-We area converging only when norm condition is satisfied not the maxiter. So we don't converge when there is no solution.
-                #     q_path = np.concatenate((q_path,[qf]))
-                break 
+            if np.linalg.norm(q-qf)<0.05 or itr>15000: 
+                if itr<15000:
+                    #Might as well converge fully
+                    q_path = np.concatenate((q_path,[qf]))
+                print((qf-q),itr)
+                break # exit the while loop if conditions are met!
             
 
-            #!==Random Walk==!#
-            if itr>10:
-                #Bitmask to check if stuck for local minima
+            # YOU MAY NEED TO DEAL WITH LOCAL MINIMA HERE
+            # TODO: when detect a local minima, implement a random walk
+            if itr>10:#0.0001 #0.0008
                 bitmask = np.linalg.norm(q_path[-1,:]-q_path[-9,:])<=randomobs
-                #If in local minima or obstacle collision
-                if bitmask or forcerandomwalk:
-                    randomwalk = randomwalk+1
+                # print("Random Walk",itr)
+                if(bitmask) or forcerandomwalk:
                     print("Random Walk",itr)
-                    
-                    #Get current joint positions
                     current,_ = FK().forward(q[0])
-                    #Random Walk iterator
+                    obstacle = np.array(map_struct.obstacles)
                     walkitr = 0
                     while True:
                         walkitr = walkitr+1
-                        #Sample new dq
+                        danger = 0
                         newdq = random.sample(range(0, 100), 6)
-                        #last joint angle needs no change
                         newdq.append(0)
-
-                        #If we have forced the random walk that means that we are in collision - move slowly
-                        if forcerandomwalk:
-                            dqrandom = [(-0.5+newdq[i]/100)*2 for i in range(7)]
-                        else:
-                            dqrandom = [(-0.5+newdq[i]/100)*5 for i in range(7)]
-
-                        #New Q
-                        newq = q + dqrandom
-                        #Again just confirming that last angle needs no change
+                        newq = q + [(-0.5+newdq[i]/100)*5 for i in range(7)]
                         newq[0][-1] = q[0][-1]
-
-                        #New position
                         new_pos,_ = FK().forward(newq[0])
-
-                        #Check 1 - Collision of new pos with obstacle box
-                        danger = self.checkCollision(new_pos.T)
-                        #Check 2 - Collision of line from old pos to new pos with obstacle
+                        obstacle = obstacle.reshape((len(obstacle),6))
                         for i in range(len(obstacle)):
-                            line_pt1 = current
-                            line_pt2 = new_pos
-                            #We will inflate again because why not
-                            box = self.inflateObs(np.array(obstacle[i,:]).reshape(1,6),1)[0]
+                        # for i in range(len(obstacle[:,0])):
+                            line_pt1 = current[1:,:]
+                            line_pt2 = new_pos[1:,:]
+                            box = np.array(obstacle[i,:])
                             danger = danger or np.any(detectCollision(line_pt1,line_pt2,box))
-                            #Check 3 - Collision of linkages
-                            danger = danger or np.any([detectCollisionOnce(new_pos[j,:],new_pos[j+1,:],box) for j in range(7)])
-
-                        #Old error and new error
                         olderr = np.linalg.norm(qf-q[0])
                         newerr = np.linalg.norm(qf-newq[0])
+                        if walkitr>20000:
+                            q = [qf]
+                            break
+                        if danger==False and (newerr<olderr or walkitr>1000):
+                            q = deepcopy(newq)
+                            break
 
-                        #Break out of random walk if its taking too long. Normally this is collision and nothing can be done. 
-                        #If we are forcing random walk this means the walkitr can be reduced at this point we have no hope of recovery
-                        bool1 = (forcerandomwalk and walkitr>1000)
-                        if walkitr>1e3 or bool1:
-                            #increase itr to break out and loose on this test case
-                            print("!!Cant find collision free path!!")
-                            return q_path#,self.data_logger#[0:itr-2,:] #Remove some positions that are very close to the obstacle
-                            q = [q_path[-1]]
-                            itr = self.MAXITER
-                            break
-                        bool2 = (newerr<=olderr or walkitr>5e3)
-                        if danger==False and bool2:
-                            q =deepcopy(newq)
-                            break
+                    #q += [2*(-0.5+random.random()) if i<6 else 0 for i in range(7)] #[(-0.5+random.random()) for i in range(7)]
             
-            
-            #Wrapping between -pi to pi
-            q = [PotentialFieldPlanner.wrapper(i) for i in q[0]]
 
             #Constraining Joint angles
-            q = self.constrainAngles(q)
-
+            q = self.constrainAngles(q[0])
+            #Wrapping between -pi to pi
+            q = [PotentialFieldPlanner.wrapper(i) for i in q]
             #Add to path
             q_path = np.concatenate((q_path,[q]))
-
             #Increase iteration
             itr = itr+1
 
             ## END STUDENT CODE
-        print(randomwalk, itr)
-        return q_path#,self.data_logger
+        return q_path#[0::20,:],self.data_logger
 
 ################################
 ## Simple Testing Environment ##
@@ -620,22 +545,14 @@ if __name__ == "__main__":
     planner = PotentialFieldPlanner()
     
     # inputs 
-    map_struct = loadmap("../maps/map1.txt")
+    map_struct = loadmap("../maps/map2.txt")
+    start = np.array([0, -1.4, 0, -2, 0, 1.57, 0.707])#np.array([0.0,-1,0,-2,0,1.57,0.7])
 
-    starts = [np.array([0, -1, 0, -2, 0, 1.57, 0]),
-            np.array([0, 0.4, 0, -2.5, 0, 2.7, 0.707]),
-            np.array([-2, 1.57, 1.57, -2.07, -1.57, 1.57, 0.7]),
-            np.array([-2, 1.57, 1.57, -2.07, -1.57, 1.57, 0.7])]
-    goals = [np.array([1.2, 1.57, 1.57, -2.07, -1.57, 1.57, 0.7]),
-            np.array([2.4, 1.57, -1.57, -1.57, 1.57, 1.57, 0.707]),
-            np.array([2.4, 1.57, -1.57, -1.57, 1.57, 1.57, 0.707]),
-            np.array([2.8, 1.57, 0, -1.57, 1.57, 1.57, 0.707])]   
+    start =  np.array([0.0,-1,0,-2,0,1.57,0.7])
+    goal = np.array([-1.2, 1.57 , 1.57, -2.07, -1.57, 1.57, 0.7])
+    # goal =  np.array([1.9, 1.57, -1.57, -1.57, 1.57, 1.57, 0.707])
 
-    # lower = np.array([-2.8973,-1.7628,-2.8973,-3.0718,-2.8973,-0.0175,-2.8973])
-    # upper = np.array([2.8973,1.7628,2.8973,-0.0698,2.8973,3.7525,2.8973])
-
-    start = starts[0]
-    goal = goals[0] 
+    
     # potential field planning
     q_path,data = planner.plan(deepcopy(map_struct), deepcopy(start), deepcopy(goal))
     
@@ -647,6 +564,11 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
 
     plt.plot(data)
-    plt.xlabel("Iterations")
-    plt.ylabel("Error (radians)")
     plt.show()
+    # print("q path: ", q_path)
+    import roboticstoolbox as rtb
+    robot = rtb.models.Panda()
+    robot2 = rtb.models.Panda()
+    # robot.plot(q_path[0::2,:])
+    # robot2.plot(goal)
+

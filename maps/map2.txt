@@ -8,7 +8,11 @@
 # you must specify the boundary of your map using the 'boundary' element
 # and can optionally include obstacles using the 'block' element
 
+#
+#
+
 
 block .18 0.19665  -0.25 0.69  0.20335  0.65
 block .18 -0.20335 -0.25 0.69 -0.19665  0.65
+
 

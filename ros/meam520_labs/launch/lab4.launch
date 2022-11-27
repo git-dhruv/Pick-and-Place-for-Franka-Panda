@@ -5,7 +5,7 @@
   <include file="$(find meam520_labs)/launch/single.launch">
     <arg name="world" value="$(find meam520_labs)/worlds/$(arg map).world" />
       <arg name="initial_joint_states"
-        value=" -J panda::panda_joint1 0.000
+        value=" -J panda::panda_joint1 -0.000
               -J panda::panda_joint2 -0.785
               -J panda::panda_joint3 0.0
               -J panda::panda_joint4 -0.2
