@@ -6,7 +6,10 @@ import itertools
 
 from lib.calculateFK import FK as calculateFK
 from lib.detectCollision import detectCollision
+<<<<<<< HEAD
 from lib.loadmap import loadmap
+=======
+>>>>>>> 6dba5d06276aa2ce62f3ad5ea1546c32fe357f70
 
 def Astar(map, start, goal):
     """
@@ -195,7 +198,11 @@ class OccupancyMap:
         beg_index = [0,1,2,3,4,5,6]
         end_index = [1,2,3,4,5,6,7]
         joint_vector = self.index_to_metric_negative_corner(ind)
+<<<<<<< HEAD
         joint_pos, foo = self.FK.forward(np.append(joint_vector, [0]))
+=======
+        joint_pos, foo = self.FK.forward(np.append(joint_vector, [0, 0]))
+>>>>>>> 6dba5d06276aa2ce62f3ad5ea1546c32fe357f70
         joint_pos_full=np.array(np.vstack((joint_pos,np.transpose(foo[0:3,3]))))
         beg_points = joint_pos_full[beg_index, ::]
         end_points = joint_pos_full[end_index, ::]
@@ -243,6 +250,7 @@ class OccupancyMap:
         """
         modifier = np.array([-radius, -radius, -radius, radius, radius, radius])
         return np.array([modifier + block for block in blocks])
+<<<<<<< HEAD
 
 
 
@@ -261,3 +269,5 @@ if __name__=="__main__":
     end = goals[3]
     tatti = Astar(map_struct,start,end)
     print(tatti)
+=======
+>>>>>>> 6dba5d06276aa2ce62f3ad5ea1546c32fe357f70

@@ -20,8 +20,9 @@ spawn_model_client = rospy.ServiceProxy('/gazebo/spawn_sdf_model', SpawnModel)
 
 path = os.path.expanduser('~/meam520_ws/src/meam520_labs/ros/meam520_labs/urdf/cube.xacro')
 command = 'rosrun xacro xacro '+path+' color:='
-colors = ["'0.043 0.611 0.192 1'","'.25 .15 .5 1'"]
+colors = ["'.8 .8 .8 1'","'.8 .8 .1 1'"]
 xmls = [subprocess.check_output(command+color,shell=True).decode('utf-8') for color in colors]
+team = rospy.get_param("team") # 'red' or 'blue'
 
 
 count = 0
@@ -57,15 +58,20 @@ def place(x,y,z,type):
 def noise(radius):
     return radius * (np.random.rand(1) - .5)
 
+if team == 'blue':
+    for i in [-1,1]:
+        for j in [-1,1]:
+            x = .562 + 2.5*.0254 * i
+            y = 1.069 + 2.5*.0254 * j
+            place(x + noise(.025) ,y + noise(.025),.23,'static')
 
-# for i in [1]:
-#     for j in [1]:
-for i in [-1,1]:
-    for j in [-1,1]:
-        x = .562 + 2.5*.0254 * i
-        y = 1.147 + 2.5*.0254 * j
-        place(x + noise(.025) ,y + noise(.025),.23,'static')
-        place(x + noise(.025) ,-y + noise(.025),.23,'static')
+
+elif team == 'red':
+    for i in [-1,1]:
+        for j in [-1,1]:
+            x = .562 + 2.5*.0254 * i
+            y = 1.069 + 2.5*.0254 * j
+            place(x + noise(.025) ,-y + noise(.025),.23,'static')
 
 # n = 1
 n = 8
@@ -77,10 +83,11 @@ for i in range(n):
 
 spin_pub = rospy.Publisher('/turntable/turntable/turntable_controller/command',Float64,queue_size=1)
 msg = Float64()
-msg.data = .0523 # about .5 rpm
+msg.data = 1000 # sending large rpm value once
 
 rospy.loginfo('spinning turntable...')
 r = rospy.Rate(1) # Hz
 while not rospy.is_shutdown():
     spin_pub.publish(msg)
+    msg.data = .0523 # about .5 rpm
     r.sleep()
