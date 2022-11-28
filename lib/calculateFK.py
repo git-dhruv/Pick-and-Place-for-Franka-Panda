@@ -128,35 +128,6 @@ class FK():
         """
         return np.dot(np.dot(self.translz(self.coinciding_frame_offset[2][current_index]),self.transly(self.coinciding_frame_offset[1][current_index])),self.translx(self.coinciding_frame_offset[0][current_index]))
          
-
-    
-    # This code is for Lab 2, you can ignore it ofr Lab 1
-    def get_axis_of_rotation(self, q):
-        """
-        INPUT:
-        q - 1x7 vector of joint angles [q0, q1, q2, q3, q4, q5, q6]
-
-        OUTPUTS:
-        axis_of_rotation_list: - 3x7 np array of unit vectors describing the axis of rotation for each joint in the
-                                 world frame
-
-        """
-        # STUDENT CODE HERE: This is a function needed by lab 2
-
-        return()
-    
-    def compute_Ai(self, q):
-        """
-        INPUT:
-        q - 1x7 vector of joint angles [q0, q1, q2, q3, q4, q5, q6]
-
-        OUTPUTS:
-        Ai: - 4x4 list of np array of homogenous transformations describing the FK of the robot. Transformations are not
-              necessarily located at the joint locations
-        """
-        # STUDENT CODE HERE: This is a function needed by lab 2
-
-        return()
     
 if __name__ == "__main__":
 
