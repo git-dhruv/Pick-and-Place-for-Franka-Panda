@@ -4,6 +4,8 @@ from scipy.linalg import null_space
 from copy import deepcopy
 
 import random
+
+#for the autograder compatibility I had to do this
 try:
     from lib.calcJacobian import calcJacobian,calcGenJacobian
     from lib.calculateFK import FK
@@ -433,8 +435,8 @@ class PotentialFieldPlanner:
 
             #!==Collision Avoidance==!#
             #if current position is colliding then we are done
-            # if self.checkCollision(current.T):
-            #     return q_path
+            if self.checkCollision(current.T):
+                return q_path
             
             #Check1 - Collision of new joint position and obstacle
             collide =  self.checkCollision(new_pos.T)
@@ -641,15 +643,10 @@ if __name__ == "__main__":
     
     # show results
     for i in range(q_path.shape[0]):
-<<<<<<< HEAD
         error = PotentialFieldPlanner.q_distance(q_path[i,:], goal)
         # print('iteration:',i,' q =', q_path[i, :], f' error={error}')
 
     import matplotlib.pyplot as plt
-=======
-        error = PotentialFieldPlanner.q_distance(q_path[i, :], goal)
-        print('iteration:',i,' q =', q_path[i, :], ' error={error}'.format(error=error))
->>>>>>> 6dba5d06276aa2ce62f3ad5ea1546c32fe357f70
 
     plt.plot(data)
     plt.xlabel("Iterations")

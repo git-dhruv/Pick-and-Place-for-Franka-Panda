@@ -1,7 +1,7 @@
 import sys
 import numpy as np
 from copy import deepcopy
-from math import pi
+from math import pi, atan2, sin,cos,sqrt
 
 import rospy
 # Common interfaces for interacting with both the simulation and real environments!
@@ -14,7 +14,10 @@ from core.utils import time_in_seconds
 
 #Team Libraries
 from lib.calculateFK import FK
+from lib.IK_velocity import IK_velocity
         
+
+from ik import IK
 
 class Final():
     def __init__(self):
@@ -43,7 +46,7 @@ class Final():
         #Previous angle - t_(i-1)
         self.prevangle = self.arm.get_positions()
         #Current Position of end effector - xyz
-        self.eepos = np.array([0,0,0])
+        self.eepos = np.eye(4)
         #Previous Position of end effector
         self.eeprevpos = np.array([0,0,0])
 
@@ -54,9 +57,13 @@ class Final():
         #Array of 4 Static Cubes
         self.cubeStaticCamera = np.zeros((4,4,4))
         #Array of Dynamic Cubes - Undecided
+        self.cubeDynamicCamera = np.zeros((8,4,4))
         
         #Array of 4 Static Cubes from Base
         self.cubeStaticBase = np.zeros((4,4,4))
+        self.approachAxis = np.zeros((4,1))
+
+        self.cubeDynamicBase = np.zeros((8,4,4))
 
         #Block of Interest
         self.dynamicBlockofInterest = None
@@ -72,10 +79,12 @@ class Final():
         self.cmdthread = None
         self.mainloopthread = None
 
+        self.ik = IK()
+
 
 
     #----------------------------------#
-    # You can look but you can't touch #
+    # Please discuss with me before modifications, somethings might already be calculated but not stored
     #----------------------------------#
 
     #!-- State Estimation Functions--!#
@@ -108,6 +117,14 @@ class Final():
         self.prevangle = self.currentangle
         self.currentangle = self.arm.get_positions()
         self.qdot = self.arm.get_velocities()
+        self.roll, self.pitch, self.yaw = self.getRPYfromRmat(self.eepos[0:3,0:3])
+
+    def getRPYfromRmat(self,Rmat):
+        yaw=atan2(Rmat[1,0],Rmat[0,0])
+        pitch=atan2(-Rmat[2,0],sqrt(Rmat[2,1]**2+ Rmat[2,2]**2))
+        roll=atan2(Rmat[2,1],Rmat[2,2])
+        return roll,pitch,yaw
+
 
     def updateLateralStates(self):
         """
@@ -134,7 +151,7 @@ class Final():
         """
         Block wrt to the Camera
         """
-        #Since its just 4 times loop its fine.. get over it
+        #Since its just 4 times loop its fine..
         for (name, pose) in self.detector.get_detections():
             self.nameParser(name,pose)
         self.numStaticCubes = sum([np.linalg.norm(self.cubeStaticCamera[i,:,:])>0 for i in range(4)])
@@ -146,16 +163,24 @@ class Final():
 
         if self.numStaticCubes<1: 
             print("Sir, Cubes not detected or populated from populate raw blocks!")
-            return
+            
+        else:
+            #Block to Cam - can someone help me vectorize this?
+            #We also apply a LPF but need a warm start on this
+            weight = 0.7
+            for block in self.StaticBlocksIhave:
+                self.cubeStaticBase[block,:,:] = weight*self.cubeStaticBase[block,:,:] + (1-weight)*(self.Cam2Base)@self.cubeStaticCamera[block,:,:]
 
-        #Block to Cam - can someone help me vectorize this?
-        for i in range(4):
-            self.cubeStaticBase[i,:,:] = (self.Cam2Base)@self.cubeStaticCamera[i,:,:]
+        for block in range(8):
+            self.cubeDynamicBase[block,:,:] = (self.Cam2Base)@self.cubeDynamicCamera[block,:,:]
     
     
-    def NoiseFiltering(self):
-        pass
+
     def LeastSquaresEstimate(self):
+        """
+        We know one of the axis of the cube has to be upright - unknown direction
+        We use that and calculate other axes using Least squares 
+        """
         for block in self.StaticBlocksIhave:
             #Get the current static Estimate 
             R = self.cubeStaticBase[block,0:3,0:3]
@@ -170,12 +195,14 @@ class Final():
             
             #Get Approach Axis
             approachAxis = err.index(min(err))
-
+            #Fix the approach Axis and do Procustes
             self.cubeStaticBase[block,:,approachAxis] = np.round(self.cubeStaticBase[block,:,approachAxis])
             U,_,Vt = np.linalg.svd(self.cubeStaticBase[block,0:3,0:3])
             Smod = np.eye(3)
             Smod[-1,-1] = np.linalg.det(U@Vt)
             self.cubeStaticBase[block,0:3,0:3] = U@Smod@Vt
+
+            self.approachAxis[block,0] = approachAxis
 
 
     def Block2BasePipeline(self):
@@ -191,7 +218,6 @@ class Final():
         self.calculateCam2Base()
         self.populate_raw_blocks()
         self.get_block_from_base()
-        self.NoiseFiltering()
         self.LeastSquaresEstimate()
 
     def nameParser(self,string,value):
@@ -204,6 +230,14 @@ class Final():
             #Also populate Static Blocks for index accessibility
             if int(string[4]) not in self.StaticBlocksIhave:
                 self.StaticBlocksIhave.append(int(string[4])-1)
+        if 'dynamic' in string:
+            if string[5].isdigit:
+                num = int(string[4])*10 + int(string[5]) - 4
+            else:
+                num = int(string[4]) -  4
+            self.cubeDynamicCamera[num-1,:,:] = value
+            
+            
 
     def updateDT(self):
         """
@@ -215,35 +249,117 @@ class Final():
             self.dt = 1e-6
         else:
             self.t1 = self.t2
+    def makeAlinetraj(self,maxt,startpos,endpos):
+        t = np.linspace(0, maxt, num=1000)
+        xdes =  np.array([(endpos[0]-startpos[0])*t/maxt + startpos[0],(endpos[1]-startpos[1])*t/maxt + startpos[1],(endpos[2]-startpos[2])*t/maxt + startpos[2]])
+        vdes = np.array([((endpos[0]-startpos[0])+0*t)/maxt,((endpos[1]-startpos[1])+0*t)/maxt,((endpos[2]-startpos[2])+0*t)/maxt])  
 
-    def run(self):        
-        #Just populate and get it going for a few times
+        return xdes, vdes
+
+    def run(self):
         for i in range(10):
+                self.updateAllStates()
+    
+        #Move to neutral Position
+        self.commanded_q = self.arm.neutral_position()  
+        self.commanded_q[-2] += 0.4 
+        self.commanded_q[0] += pi/2
+        self.arm.safe_move_to_position(self.commanded_q)
+        self.arm.open_gripper()
+        
+        print("Updating States")
+        #State Estimation Pipeline
+        self.updateAllStates()      #Update Angular and Lateral States of Robot
+        for i in range(50):
+            self.Block2BasePipeline()   #Update Blocks wrt Base (and Camera and whatever in the process)
+
+        # Jacobian based control system
+        blockno = 6
+        self.TargetPos = self.cubeDynamicBase[blockno,:,:]
+         
+        xdes, vdes = self.makeAlinetraj(100,self.eepos[0:3,-1],self.TargetPos[0:3,-1])
+
+        # Get the target rpy
+        troll, tpitch, tyaw = self.getRPYfromRmat(self.TargetPos[0:3,0:3])
+
+        # Verify This   - We only do nonsense with the aligned trajectory         
+        if self.approachAxis[blockno,0]==1: 
+            tyaw = troll
+
+        if self.approachAxis[blockno,0] ==0:
+            tyaw = tpitch
+
+        if self.approachAxis[blockno,0] ==2:
+            tyaw = troll
+
+        # Make the desired angles and desired angular omega
+        angdes,omegades = self.makeAlinetraj(100,[self.pitch,self.roll,self.yaw],[ tpitch,troll, tyaw])
+
+        q = self.currentangle
+        self.last_iteration_time = None
+        new_q = q
+
+        #!-We need a while loop here that has a tolerance on error rather than this iterator--!#        
+        for i in range(1000):
+            #Update            
+            self.updateAllStates()
+            new_q = self.currentangle
+            #P gain
+            kp = 10
+            v = vdes[:,i] + kp * (xdes[:,i] - self.eepos[0:3,-1])
+            # Verify This   2 - Make Z trajectory slower
+            v[-1] = 0.4*v[-1]
+
+            #Controller for orientation
+            w = omegades[:,i] + .1*(angdes[:,i] - [self.pitch,self.roll,self.yaw])
+
+            # Velocity Inverse Kinematics
+            dq = IK_velocity(new_q,v,np.array([np.nan,np.nan,w[-1]]))
+
+            # Get the correct timing to update with the robot
+            if self.last_iteration_time == None:
+                self.last_iteration_time = time_in_seconds()
+            
+            self.dt = time_in_seconds() - self.last_iteration_time
+            self.last_iteration_time = time_in_seconds()
+            
+            new_q += self.dt * dq
+            
+            self.arm.safe_set_joint_positions_velocities(new_q, dq)
+
+        # Verify This   3 - The last bit of Z that is left
+        
+        for i in range(100):
             self.updateAllStates()
 
+            new_q = self.currentangle
+            
+            kp = 3
+            v = vdes[:,i] + kp * (xdes[:,-1] - self.eepos[0:3,-1])
+            
+            w = omegades[:,i] + .1*(angdes[:,-1] - [self.pitch,self.roll,self.yaw])
+            # Velocity Inverse Kinematics
+            dq = IK_velocity(new_q,v,np.array([np.nan,np.nan,w[-1]]))
 
-        #Move to neutral Position
-        start_position = self.arm.neutral_position()  
-        start_position[-2] += 0.4 
-        self.arm.safe_move_to_position(start_position)
-        self.updateAllStates()
-        self.Block2BasePipeline()
-        self.LeastSquaresEstimate()
-
-
-        #T0e
-
+            # Get the correct timing to update with the robot
+            if self.last_iteration_time == None:
+                self.last_iteration_time = time_in_seconds()
+            
+            self.dt = time_in_seconds() - self.last_iteration_time
+            self.last_iteration_time = time_in_seconds()
+            
+            new_q += self.dt * dq
+            
+            self.arm.safe_set_joint_positions_velocities(new_q, dq)
         
+        self.arm.close_gripper()
 
-        print(np.round(self.cubeStaticBase,3))
 
-        print("****************")
-        input("\nWaiting for start... Press ENTER to begin!\n") # get set!
-        print("Go!\n") # go!
+        print(self.eepos-self.cubeStaticBase[blockno,:,:])
 
-        
-        
-        
+
+
+    
     
 
 

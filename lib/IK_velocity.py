@@ -16,9 +16,7 @@ def IK_velocity(q_in, v_in, omega_in):
          that minimizes the l2 norm of dq
     """
 
-    ## STUDENT CODE GOES HERE
 
-#     dq = np.zeros((1, 7))
 
     v_in = v_in.reshape((3,1))
     omega_in = omega_in.reshape((3,1))

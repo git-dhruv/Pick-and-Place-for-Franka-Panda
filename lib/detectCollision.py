@@ -1,11 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Edited Shane Rozen-Levy 10/1/20
-    Added 3d case
-    Added unit tests
-    Allowed for multiple inputs
-"""
+
 
 import numpy as np
 import matplotlib.pyplot as plt

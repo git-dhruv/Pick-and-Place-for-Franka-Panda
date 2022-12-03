@@ -5,9 +5,6 @@ class FK():
 
     def __init__(self):
 
-        # TODO: you may want to define geometric parameters here that will be
-        # useful in computing the forward kinematics. The data you will need
-        # is provided in the lab handout
         """
         Defining DH Parameters
         """
@@ -41,7 +38,6 @@ class FK():
                   world frame
         """
 
-        # Your Lab 1 code starts here
 
         jointPositions = np.zeros((8,3))
         T0e = np.identity(4)
@@ -78,11 +74,9 @@ class FK():
         jointPositions[0,1] = 0
         jointPositions[0,2] = 0.141
 
-        # Your code ends here
 
         return jointPositions, T0e
 
-    # feel free to define additional helper methods to modularize your solution for lab 1
     def get_approach_for_all(self):
         return self.approach
 

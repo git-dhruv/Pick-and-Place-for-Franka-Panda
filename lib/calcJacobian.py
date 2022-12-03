@@ -4,7 +4,7 @@ try:
 except:
     from calculateFK import FK
 
-def calcJacobian2(q_in):
+def calcJacobian(q_in):
     """
     Calculate the full Jacobian of the end effector in a given configuration
     :param q_in: 1 x 7 configuration vector (of joint angles) [q1,q2,q3,q4,q5,q6,q7]
@@ -75,7 +75,7 @@ import math
 from math import *
 from numpy import *
 
-def calcJacobian(q_in):
+def calcJacobian2(q_in):
 
 	J = np.zeros((6, 7))
 	
